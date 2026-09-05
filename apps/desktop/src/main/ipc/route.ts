@@ -37,6 +37,21 @@ export interface Supervision {
    * types only so that routing stays testable without a main process.
    */
   revealLogFile: () => Promise<CommandResult<"reveal_log_file">>
+  /**
+   * Managing the Pi the agent host loads.
+   *
+   * Grouped rather than spread across five members because they are one
+   * object's surface: `PiManager` owns the store, the in-flight install and the
+   * restart, and splitting it here would only let the router hold four fifths
+   * of it.
+   */
+  pi: {
+    status: () => CommandResult<"get_pi_runtime">
+    releases: () => Promise<CommandResult<"check_pi_releases">>
+    install: (params: CommandParams<"install_pi">) => CommandResult<"install_pi">
+    use: (params: CommandParams<"use_pi">) => Promise<CommandResult<"use_pi">>
+    remove: (params: CommandParams<"remove_pi">) => CommandResult<"remove_pi">
+  }
 }
 
 /** The collaborators, narrowed to what routing actually uses. */
@@ -70,6 +85,11 @@ const MAIN_HANDLERS: {
   create_workspace: async (routing, params) => await routing.supervision.createWorkspace(params),
   choose_attachments: async (routing, params) => await routing.supervision.chooseAttachments(params),
   reveal_log_file: async (routing) => await routing.supervision.revealLogFile(),
+  get_pi_runtime: async (routing) => await Promise.resolve(routing.supervision.pi.status()),
+  check_pi_releases: async (routing) => await routing.supervision.pi.releases(),
+  install_pi: async (routing, params) => await Promise.resolve(routing.supervision.pi.install(params)),
+  use_pi: async (routing, params) => await routing.supervision.pi.use(params),
+  remove_pi: async (routing, params) => await Promise.resolve(routing.supervision.pi.remove(params)),
 }
 
 /**

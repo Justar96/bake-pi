@@ -132,8 +132,30 @@ const Splash = (): React.JSX.Element => (
  * here. So the reason is shown when there is one, and the log is one click
  * away, because a person who cannot fix this themselves can at least send the
  * file to somebody who can.
+ *
+ * The third control only appears when a Pi installed from upstream is the one
+ * selected, and it is the reason this screen asks main a question at all. The
+ * settings panel that chose that Pi lives inside the workbench, and the
+ * workbench is exactly what a host that will not start never reaches — so the
+ * way back cannot live there. Offering it here keeps a bad install from being a
+ * one-way door.
  */
-const HostDisconnected = ({ error }: { error?: ContractError | undefined }): React.JSX.Element => (
+const HostDisconnected = ({ error }: { error?: ContractError | undefined }): React.JSX.Element => {
+  const [managedPi, setManagedPi] = useState<string | undefined>(undefined)
+  const [reverting, setReverting] = useState(false)
+
+  useEffect(() => {
+    void store.send("get_pi_runtime", {}).then(
+      (runtime) => { setManagedPi(runtime.activeVersion) },
+      () => {
+        // Main answers this without the host, so a failure here is main itself
+        // being unreachable. Nothing on this screen would work in that case,
+        // and a second error message would explain none of it.
+      },
+    )
+  }, [])
+
+  return (
   <main id="main-content" {...stylex.props(scrollbars.thin, styles.center)}>
     <span {...stylex.props(styles.trustIcon, styles.dangerIcon)}><RotateCcw size={26} /></span>
     <span {...stylex.props(styles.kicker)}>Connection</span>
@@ -147,9 +169,25 @@ const HostDisconnected = ({ error }: { error?: ContractError | undefined }): Rea
     <div {...stylex.props(styles.actions)}>
       <button type="button" onClick={() => void store.restartHost().catch((thrown: unknown) => store.capture(thrown))} {...stylex.props(focus.control, styles.primary)}><RotateCcw size={16} /> Restart agent host</button>
       <button type="button" onClick={() => void store.revealLogFile().catch((thrown: unknown) => store.capture(thrown))} {...stylex.props(focus.control, styles.secondary)}><FolderOpenIcon width={16} height={16} /> Show log</button>
+      {managedPi === undefined ? undefined : (
+        <button
+          type="button"
+          disabled={reverting}
+          onClick={() => {
+            setReverting(true)
+            void store.send("use_pi", {})
+              .catch((thrown: unknown) => store.capture(thrown))
+              .finally(() => { setReverting(false) })
+          }}
+          {...stylex.props(focus.control, styles.secondary)}
+        >
+          <RotateCcw size={16} /> {reverting ? "Switching…" : `Use the bundled Pi instead of ${managedPi}`}
+        </button>
+      )}
     </div>
   </main>
-)
+  )
+}
 
 const slide = stylex.keyframes({
   "0%": { transform: "translateX(-110%)" },

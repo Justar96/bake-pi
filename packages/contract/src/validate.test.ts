@@ -167,18 +167,23 @@ describe("the registry is internally consistent", () => {
   test("commands are host-owned unless they are named otherwise", () => {
     const owned = COMMAND_NAMES.filter((name) => isMainOwnedCommand(name))
     expect(owned).toEqual([...MAIN_OWNED_COMMANDS])
-    // Restart and the log reveal have to be answerable while no host exists;
-    // the native pickers, the location listing, creation and pathless
-    // recent-workspace lookup stay in main because only main may choose a host
-    // filesystem path.
+    // Restart, the log reveal and every Pi command have to be answerable while
+    // no host exists; the native pickers, the location listing, creation and
+    // pathless recent-workspace lookup stay in main because only main may
+    // choose a host filesystem path.
     expect(owned).toEqual([
+      "check_pi_releases",
       "choose_attachments",
       "choose_workspace",
       "create_workspace",
+      "get_pi_runtime",
+      "install_pi",
       "list_workspace_locations",
+      "remove_pi",
       "reopen_recent_workspace",
       "restart_host",
       "reveal_log_file",
+      "use_pi",
     ])
   })
 

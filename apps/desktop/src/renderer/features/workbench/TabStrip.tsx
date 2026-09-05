@@ -36,6 +36,7 @@ export const TabStrip = ({
   onToggleSessions,
   onToggleSettings,
   onShowResources,
+  onShowPiEngine,
   onToggleFiles,
   onToggleActivity,
   onOpenPalette,
@@ -47,6 +48,15 @@ export const TabStrip = ({
   onToggleSessions: () => void
   onToggleSettings: () => void
   onShowResources: () => void
+  /**
+   * Where the Pi update badge leads.
+   *
+   * It used to lead to Resources, which was the only place the newer version
+   * was named and a place that could do nothing about it. Now that installing
+   * upstream Pi is a thing this application can do, the badge goes to the
+   * section that does it.
+   */
+  onShowPiEngine: () => void
   onToggleFiles: () => void
   onToggleActivity: () => void
   onOpenPalette: () => void
@@ -95,7 +105,7 @@ export const TabStrip = ({
       <div aria-hidden="true" {...stylex.props(styles.dragFill)} />
 
       <div {...stylex.props(styles.controls)}>
-        <Connection state={state} onShowResources={onShowResources} />
+        <Connection state={state} onShowResources={onShowResources} onShowPiEngine={onShowPiEngine} />
         <button
           type="button"
           onClick={onToggleSessions}
@@ -214,7 +224,7 @@ const StatusMark = ({ status }: { status: SessionStatus }): React.JSX.Element =>
  * restart survive at every width, and the words stay in the accessibility tree
  * rather than leaving the live region with nothing to announce.
  */
-const Connection = ({ state, onShowResources }: { state: WorkbenchView; onShowResources: () => void }): React.JSX.Element => {
+const Connection = ({ state, onShowResources, onShowPiEngine }: { state: WorkbenchView; onShowResources: () => void; onShowPiEngine: () => void }): React.JSX.Element => {
   const connection = state.connection
   const status = connection.status
   const said = status === "connected"
@@ -259,7 +269,7 @@ const Connection = ({ state, onShowResources }: { state: WorkbenchView; onShowRe
       {connection.status === "connected" && connection.latestPiVersion !== undefined ? (
         <button
           type="button"
-          onClick={onShowResources}
+          onClick={onShowPiEngine}
           aria-label={`Pi ${connection.latestPiVersion} update available; running ${connection.piVersion}`}
           title={`Pi ${connection.latestPiVersion} available · running ${connection.piVersion}`}
           {...stylex.props(focus.control, styles.press, styles.updateStatus)}

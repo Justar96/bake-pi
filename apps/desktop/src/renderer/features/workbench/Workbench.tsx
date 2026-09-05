@@ -152,6 +152,7 @@ export const Workbench = ({ theme, onTheme, disclosure, onDisclosure }: { theme:
   }
   const openSettingsModal = (): void => openSettings("providers")
   const showResources = (): void => openSettings("resources")
+  const showPiEngine = (): void => openSettings("engine")
 
   /*
     The workbench's keybindings. The context is a ref rather than a state
@@ -212,6 +213,7 @@ export const Workbench = ({ theme, onTheme, disclosure, onDisclosure }: { theme:
         onToggleSessions={openSessionsModal}
         onToggleSettings={openSettingsModal}
         onShowResources={showResources}
+        onShowPiEngine={showPiEngine}
         onToggleFiles={toggleFilesRail}
         onToggleActivity={toggleActivityRail}
         onOpenPalette={() => setPaletteOpen(true)}

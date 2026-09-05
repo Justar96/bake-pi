@@ -14,10 +14,14 @@ interface Harness {
   recentWorkspaceOpens: number
   attachmentChoices: number
   logReveals: number
+  piInstalls: string[]
+  piSelections: (string | undefined)[]
 }
 
 const harness = (answer?: (name: CommandName) => unknown): Harness => {
   const sent: Harness["sent"] = []
+  const piInstalls: Harness["piInstalls"] = []
+  const piSelections: Harness["piSelections"] = []
   const world = {
     sent,
     restarts: 0,
@@ -25,6 +29,8 @@ const harness = (answer?: (name: CommandName) => unknown): Harness => {
     recentWorkspaceOpens: 0,
     attachmentChoices: 0,
     logReveals: 0,
+    piInstalls,
+    piSelections,
   } as Harness
   world.routing = {
     guard: { check: (_event, name, params) => ({ name: name as CommandName, params }) },
@@ -60,6 +66,19 @@ const harness = (answer?: (name: CommandName) => unknown): Harness => {
       revealLogFile: async () => {
         world.logReveals += 1
         return { path: "C:/logs/bake-pi.log" }
+      },
+      pi: {
+        status: () => ({ bundledVersion: "0.85.0", pending: false, installed: [] }),
+        releases: async () => ({ releases: [] }),
+        install: (params) => {
+          world.piInstalls.push(params.version)
+          return { started: true }
+        },
+        use: async (params) => {
+          world.piSelections.push(params.version)
+          return params.version === undefined ? {} : { activeVersion: params.version }
+        },
+        remove: (params) => ({ removed: params.version }),
       },
     },
   }

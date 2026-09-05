@@ -28,6 +28,7 @@ If it opens on "Agent host disconnected", the screen names the failure and its *
 - **One source of truth.** Pi owns session trees, credentials, tools, extensions, and compaction. Bake Pi never keeps a parallel copy.
 - **Streaming that skips the main process.** Tokens and session events travel from the agent host straight to the renderer over a transferred `MessagePort`.
 - **A locked-down renderer.** Sandboxed and context-isolated, with no `'unsafe-inline'` (StyleX compiles to static CSS) and no `'unsafe-eval'`.
+- **Pi updates without an app update.** Settings → Pi engine installs any upstream Pi release from what the Pi project publishes, verified against its `SHA256SUMS` and each package's integrity, and restarts the agent host onto it. The bundled Pi stays put, so going back is one button.
 - **Recoverable crashes.** Atomic on-disk tool markers isolate a failing session; the supervisor restores healthy workspaces and reports interrupted tools.
 
 ## Develop

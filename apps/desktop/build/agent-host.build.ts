@@ -7,7 +7,18 @@ import { PI_EXTERNAL, banner, mode, outDir, repoRoot, runBuild } from "./shared.
  */
 export const buildAgentHost = () =>
   runBuild("agent-host", {
-    entrypoints: [join(repoRoot, "packages/agent-host/src/index.ts")],
+    /*
+      Two entry points, one output directory, and the split is load-bearing.
+      `boot.ts` installs the module resolve hook that lets a managed Pi win over
+      the bundled one, and a hook is only worth anything before the imports it
+      redirects have run. Bundled together, the host's static Pi imports would
+      be hoisted above the registration; kept apart, `boot.js` evaluates alone
+      and reaches `index.js` only through a runtime `import()`.
+    */
+    entrypoints: [
+      join(repoRoot, "packages/agent-host/src/boot.ts"),
+      join(repoRoot, "packages/agent-host/src/index.ts"),
+    ],
     outdir: join(outDir, "agent-host"),
     target: "node",
     format: "esm",

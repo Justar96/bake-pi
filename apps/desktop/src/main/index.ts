@@ -19,6 +19,7 @@ import { formatCommandLatency } from "./supervisor/recovery.ts"
 import { HostSupervisor } from "./supervisor/supervisor.ts"
 import { createMainWindow } from "./window.ts"
 import { installUpdater } from "./update.ts"
+import { PiManager } from "./pi/manager.ts"
 import { installLogFile, logFilePath } from "./observability/log-file.ts"
 import { watchRendererBundle } from "./dev-reload.ts"
 import { RecentWorkspaceStore } from "./recent-workspace.ts"
@@ -118,6 +119,22 @@ if (squirrelStartup) {
     if (window !== undefined && !window.isDestroyed()) deliverHostConnection(window, notice)
   }
 
+  /*
+    Declared before the supervisor because the launcher asks it where Pi is,
+    and it asks the supervisor to restart. The cycle is only in the types: the
+    restart closure runs long after both exist, and `rootForNextStart` is read
+    at each host start rather than when the launcher is built.
+  */
+  const pi = new PiManager({
+    root: join(app.getPath("userData"), "pi"),
+    // The build stamps the agent host's declared Pi into main. Reading it here
+    // rather than asking the running host means the panel can still say what
+    // the application ships with while no host is running — which is exactly
+    // when someone needs to go back to it.
+    bundledVersion: process.env.BAKE_PI_PI_VERSION ?? "unknown",
+    restartHost: async () => await supervisor.restart(),
+  })
+
   const supervisor = new HostSupervisor({
     renderer: {
       available: () => window !== undefined && !window.isDestroyed(),
@@ -132,6 +149,14 @@ if (squirrelStartup) {
     createLauncher: (runtime, hooks) => runtime.kind === "wsl"
       ? new WslLauncher({
           distro: runtime.distro,
+          /*
+            The host bundle directly, and no managed Pi. A WSL workspace runs
+            the host inside the distribution, on that distribution's Node and
+            its own `node_modules`; the managed installs under `userData` are
+            Windows-side trees built for a Windows Electron. Pointing a Linux
+            host at one would hand it the wrong platform's native packages.
+            A WSL workspace therefore always runs the bundled Pi.
+          */
           entry: join(distRoot, "agent-host/index.js"),
           appVersion: app.getVersion(),
           ...(process.env.BAKE_PI_PI_VERSION === undefined
@@ -142,7 +167,14 @@ if (squirrelStartup) {
           onPhase: hooks.onPhase,
         })
       : new UtilityProcessLauncher({
-          entry: join(distRoot, "agent-host/index.js"),
+          /*
+            The boot stub, not the host bundle. It registers the module resolve
+            hook that lets a managed Pi win over the one in the asar, and then
+            imports the host — an order that only holds because they are two
+            files. See `pi-resolution.ts` in the agent host.
+          */
+          entry: join(distRoot, "agent-host/boot.js"),
+          piRoot: pi.rootForNextStart,
           quarantinedSessions: hooks.quarantinedSessions,
           onExit: hooks.onUnexpectedExit,
           onPhase: hooks.onPhase,
@@ -622,6 +654,13 @@ Bake Pi can install its own copy inside ${distro}, under ~/.cache/bake-pi. It is
         if (path === undefined) throw new BakePiError("internal_error", { detail: "no_log_file" })
         shell.showItemInFolder(path)
         return await Promise.resolve({ path })
+      },
+      pi: {
+        status: () => pi.status(),
+        releases: async () => await pi.releases(),
+        install: (params) => pi.install(params),
+        use: async (params) => await pi.use(params),
+        remove: (params) => pi.remove(params),
       },
     }, () => resourceProbe?.sample("command"))
 

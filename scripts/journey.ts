@@ -842,7 +842,7 @@ try {
       return trigger?.getAttribute("aria-expanded") === "true"
         && modal?.matches('[role="dialog"][aria-modal="true"]') === true
         && modal.querySelector('[role="tablist"][aria-label="Settings sections"]') !== null
-        && modal.querySelectorAll('[role="tab"]').length === 6
+        && modal.querySelectorAll('[role="tab"]').length === 7
         && document.getElementById("settings-tab-sessions") === null
     })()`, "the settings modal")
   })
@@ -864,6 +864,17 @@ try {
     await waitFor(driver, `document.querySelector('#settings-panel-privacy')?.textContent?.includes("Trusted") === true`, "the workspace trust decision")
     await driver.click("Resources")
     await waitFor(driver, `document.querySelector('#settings-panel-resources:not([hidden])') !== null && text().includes("Package sources") && text().includes("Inventory") && text().includes("Reload")`, "resource source settings")
+    /*
+      Pi engine names the running Pi and the bundled one without touching the
+      network: the section reads only what is on disk until somebody asks it to
+      check upstream. That is what makes it assertable here, where there is no
+      network and should be no attempt at one.
+    */
+    await driver.click("Pi engine")
+    await waitFor(driver, `document.querySelector('#settings-panel-engine:not([hidden])') !== null
+      && text().includes("Running")
+      && text().includes("bundled with this build of Bake Pi")
+      && text().includes("Check for releases")`, "the Pi engine section")
     await driver.click("Diagnostics")
     await waitFor(driver, `document.querySelector('#settings-panel-diagnostics:not([hidden])') !== null && text().includes("Bake Pi") && text().includes("Recent entries") && document.querySelectorAll("#settings-modal").length === 1`, "diagnostic settings")
     await driver.click("Appearance")

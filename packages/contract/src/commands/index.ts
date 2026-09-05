@@ -4,6 +4,7 @@ import { authCommands } from "./auth.ts"
 import { extensionUiCommands } from "./extension-ui.ts"
 import { imageCommands } from "./image.ts"
 import { modelCommands } from "./model.ts"
+import { piCommands } from "./pi.ts"
 import { promptCommands } from "./prompt.ts"
 import { resourceCommands } from "./resources.ts"
 import { runtimeCommands } from "./runtime.ts"
@@ -15,6 +16,7 @@ import { workspaceCommands } from "./workspace.ts"
 export * from "./define.ts"
 export { DiagnosticEntry, RuntimeInfo } from "./runtime.ts"
 export { Attachment } from "./prompt.ts"
+export { InstalledPi, PiInstallState, PiRelease } from "./pi.ts"
 export { MAX_DIRECTORY_ENTRIES } from "./workspace.ts"
 export {
   MAX_IMAGE_BYTES,
@@ -50,6 +52,7 @@ export {
  */
 const registeredCommands = {
   ...runtimeCommands,
+  ...piCommands,
   ...workspaceCommands,
   ...sessionCommands,
   ...imageCommands,
@@ -96,13 +99,18 @@ export const isCommandName = (value: unknown): value is CommandName =>
  * error rather than dead code the router will never reach.
  */
 export const MAIN_OWNED_COMMANDS = [
+  "check_pi_releases",
   "choose_attachments",
   "choose_workspace",
   "create_workspace",
+  "get_pi_runtime",
+  "install_pi",
   "list_workspace_locations",
+  "remove_pi",
   "reopen_recent_workspace",
   "restart_host",
   "reveal_log_file",
+  "use_pi",
 ] as const satisfies readonly CommandName[]
 export type MainOwnedCommand = (typeof MAIN_OWNED_COMMANDS)[number]
 
@@ -139,4 +147,11 @@ export const GESTURE_REQUIRED_COMMANDS = [
   "reload_resources",
   "update_resources",
   "update_global_settings",
+  // Installing, selecting or deleting a Pi is the most consequential thing this
+  // application can be asked to do by a message: it decides which code the
+  // agent host will load and run. Nothing but a person pressing a button in the
+  // panel should be able to start one.
+  "install_pi",
+  "use_pi",
+  "remove_pi",
 ] as const satisfies readonly CommandName[]

@@ -40,6 +40,17 @@ export const ErrorCode = Type.Union([
   // Resources and extensions
   Type.Literal("resource_not_found"),
   Type.Literal("extension_failed"),
+  /**
+   * A managed Pi cannot be installed, selected or removed in the state the
+   * application is in — one install is already running, the version asked for
+   * is not on disk, or the one asked to go is the one in use.
+   *
+   * Separate from `internal_error` because none of these is a fault. Each is a
+   * true statement about the request, the detail says which, and the panel can
+   * repeat it to the person who pressed the button instead of showing them a
+   * diagnostics entry that explains nothing.
+   */
+  Type.Literal("pi_unavailable"),
   // Capacity
   Type.Literal("memory_ceiling_reached"),
   Type.Literal("queue_cap_exceeded"),

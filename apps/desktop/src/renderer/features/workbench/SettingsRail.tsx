@@ -36,10 +36,11 @@ import { focus } from "../../theme/focus.ts"
 import { size } from "../../theme/sizes.stylex.ts"
 import { Modal } from "./Overlay.tsx"
 import { credentialLifetimeWarning } from "./ui-copy.ts"
+import { PiEngineSettings, type PiEngineController, usePiEngineController } from "./PiEngine.tsx"
 import { PiSettings, type PiSettingsController, SettingsGroupHead, usePiSettingsController } from "./PiSettings.tsx"
 import { SelectControl } from "./SelectControl.tsx"
 
-export type SettingsSection = "providers" | "agent" | "resources" | "privacy" | "diagnostics" | "appearance"
+export type SettingsSection = "providers" | "agent" | "resources" | "privacy" | "engine" | "diagnostics" | "appearance"
 type DiagnosticsData = { runtime?: CommandResult<"get_runtime_info">; diagnostics?: CommandResult<"get_diagnostics">; timings?: CommandResult<"get_timings"> }
 interface DiagnosticsController { data: DiagnosticsData; refreshing: boolean; error: boolean; load: () => void }
 type ResourcePackageUpdate = CommandResult<"check_resource_updates">["updates"][number]
@@ -76,6 +77,14 @@ const SECTION_GROUPS: readonly { label: string; sections: readonly { id: Setting
     { id: "privacy", label: "Privacy", Glyph: ShieldCheck },
   ] },
   { label: "Bake Pi", sections: [
+    /*
+      Under Bake Pi rather than Pi, and the placement is an argument. Every
+      section in the group above writes to state Pi owns and Pi's command line
+      reads back. This one decides which Pi exists to own anything — a choice
+      about this application's own installation, which the command line neither
+      sees nor shares.
+    */
+    { id: "engine", label: "Pi engine", Glyph: PackageOpen },
     { id: "appearance", label: "Appearance", Glyph: SunMoon },
     { id: "diagnostics", label: "Diagnostics", Glyph: Gauge },
   ] },
@@ -159,11 +168,12 @@ export const SettingsModal = ({
   const tabs = useRef(new Map<SettingsSection, HTMLButtonElement>())
   const body = useRef<HTMLDivElement>(null)
   const piSettings = usePiSettingsController(active === "agent" || active === "resources" || active === "privacy")
+  const engine = usePiEngineController(active === "engine")
   const diagnostics = useDiagnosticsController(active === "diagnostics")
   const resourceInventory = useResourcesController(active === "resources")
   const current = SECTIONS.find((section) => section.id === active)!
-  const refresh = sectionRefresh(active, piSettings, diagnostics, resourceInventory)
-  const status = sectionStatus(active, piSettings, diagnostics, resourceInventory)
+  const refresh = sectionRefresh(active, piSettings, diagnostics, resourceInventory, engine)
+  const status = sectionStatus(active, piSettings, diagnostics, resourceInventory, engine)
 
   useLayoutEffect(() => {
     body.current?.scrollTo({ top: 0 })
@@ -205,7 +215,7 @@ export const SettingsModal = ({
       */
       case "resources": return (
         <div {...stylex.props(styles.settingsStack)}>
-          <ResourceSettings resources={resources} extensionErrors={extensionErrors} piUpdate={piUpdate} controller={resourceInventory} />
+          <ResourceSettings resources={resources} extensionErrors={extensionErrors} piUpdate={piUpdate} onShowEngine={() => { onSection("engine") }} controller={resourceInventory} />
           <details {...stylex.props(styles.sources)}>
             <summary {...stylex.props(focus.control, styles.sourcesSummary)}>
               <span>Sources</span>
@@ -223,6 +233,7 @@ export const SettingsModal = ({
         so the more specific setting is not read as the general one.
       */
       case "privacy": return <div {...stylex.props(styles.settingsStack)}><WorkspacePermissionSettings trust={workspaceTrust} /><PiSettings area="privacy" models={models} controller={piSettings} /></div>
+      case "engine": return <PiEngineSettings controller={engine} />
       case "diagnostics": return <DiagnosticsSettings controller={diagnostics} />
       case "appearance": return <AppearanceSettings theme={theme} onTheme={onTheme} disclosure={disclosure} onDisclosure={onDisclosure} />
     }
@@ -346,9 +357,10 @@ const useResourcesController = (enabled: boolean): ResourcesController => {
   return { refreshing, checking, updating, checked, error, updates, reload, update }
 }
 
-const sectionRefresh = (section: SettingsSection, pi: PiSettingsController, diagnostics: DiagnosticsController, inventory: ResourcesController): SectionRefresh | undefined => {
+const sectionRefresh = (section: SettingsSection, pi: PiSettingsController, diagnostics: DiagnosticsController, inventory: ResourcesController, engine: PiEngineController): SectionRefresh | undefined => {
   switch (section) {
     case "diagnostics": return { label: "Refresh", announce: "Refresh diagnostics", run: diagnostics.load, busy: diagnostics.refreshing }
+    case "engine": return { label: "Refresh", announce: "Re-read installed Pi versions", run: engine.load, busy: engine.busy !== undefined }
     case "resources": return { label: "Reload", announce: "Reload Pi resources and check for package updates", run: () => { pi.load(); inventory.reload() }, busy: pi.busy || inventory.refreshing || inventory.checking || inventory.updating }
     case "agent": case "privacy": return { label: "Refresh", announce: "Refresh Pi settings", run: pi.load, busy: pi.busy }
     /*
@@ -361,11 +373,18 @@ const sectionRefresh = (section: SettingsSection, pi: PiSettingsController, diag
   }
 }
 
-const sectionStatus = (section: SettingsSection, pi: PiSettingsController, diagnostics: DiagnosticsController, inventory: ResourcesController): SectionStatus | undefined => {
+const sectionStatus = (section: SettingsSection, pi: PiSettingsController, diagnostics: DiagnosticsController, inventory: ResourcesController, engine: PiEngineController): SectionStatus | undefined => {
   if (section === "diagnostics") {
     if (diagnostics.error) return { message: "Diagnostics could not be refreshed. Existing results are unchanged.", tone: "error" }
     if (diagnostics.refreshing) return { message: "Refreshing diagnostics…", tone: "busy" }
     if (diagnostics.data.runtime === undefined) return { message: "Reading runtime information from the host…", tone: "busy" }
+    return undefined
+  }
+  if (section === "engine") {
+    if (engine.error !== undefined) return { message: engine.error, tone: "error" }
+    if (engine.busy === "selecting") return { message: "Restarting the agent host onto the selected Pi…", tone: "busy" }
+    if (engine.busy === "removing") return { message: "Removing the installed Pi…", tone: "busy" }
+    if (engine.busy === "checking") return { message: "Asking upstream what it has published…", tone: "busy" }
     return undefined
   }
   if (section === "providers" || section === "appearance") return undefined
@@ -516,7 +535,7 @@ const ProviderSettings = ({ providers }: { providers: Provider[] }): React.JSX.E
  * inventory on screen throughout, because an inventory that empties itself to
  * say "working" loses the thing a person opened it to compare against.
  */
-const ResourceSettings = ({ resources, extensionErrors, piUpdate, controller }: { resources: Resource[]; extensionErrors: ExtensionError[]; piUpdate: PiUpdate | undefined; controller: ResourcesController }): React.JSX.Element => {
+const ResourceSettings = ({ resources, extensionErrors, piUpdate, onShowEngine, controller }: { resources: Resource[]; extensionErrors: ExtensionError[]; piUpdate: PiUpdate | undefined; onShowEngine: () => void; controller: ResourcesController }): React.JSX.Element => {
   const [view, setView] = useState<ResourceView>("extension")
   const [filter, setFilter] = useState("")
   const filterField = useRef<HTMLInputElement>(null)
@@ -541,8 +560,17 @@ const ResourceSettings = ({ resources, extensionErrors, piUpdate, controller }: 
           <span aria-hidden="true" {...stylex.props(styles.packageUpdateGlyph)}><Download size={17} /></span>
           <span {...stylex.props(styles.packageUpdateCopy)}>
             <span {...stylex.props(styles.packageUpdateTitle)}>Pi {piUpdate.latestVersion} is available</span>
-            <span {...stylex.props(styles.packageUpdateDetail)}>This Bake Pi build includes {piUpdate.currentVersion}. Update Bake Pi to move the app and Pi together.</span>
+            {/*
+              This used to end with "update Bake Pi to move the app and Pi
+              together", which was true and useless: it named a newer Pi and
+              then offered nothing. Pi engine installs it.
+            */}
+            <span {...stylex.props(styles.packageUpdateDetail)}>This build runs {piUpdate.currentVersion}.</span>
           </span>
+          <button type="button" onClick={onShowEngine} {...stylex.props(focus.control, styles.packageUpdateAction)}>
+            <PackageOpen size={14} aria-hidden="true" />
+            Pi engine
+          </button>
         </div>
       )}
 

@@ -102,6 +102,37 @@ into main. `scripts/boundaries.test.ts` enforces dependency and bridge boundarie
   scrolling coverage, selection, and session switching. `store/stream-batcher.ts`
   is the single stream-delivery frame boundary; do not add a second store scheduler.
 
+## Managed Pi
+
+Bake Pi ships one Pi inside the asar and can install others from upstream. The
+bundled copy is never replaced, so reverting is one command.
+
+- The agent host has **two** entry bundles. `boot.js` registers a
+  `module.registerHooks` resolve hook that re-anchors `@earendil-works/*` at the
+  managed directory, then imports `index.js`. They must stay separate: bundled
+  together, the host's static Pi imports hoist above the registration and the
+  managed install is never consulted. Main forks `boot.js`; a WSL workspace
+  forks `index.js` and always runs the bundled Pi, because a managed tree is
+  built for the host platform.
+- Main passes the directory as `PI_ROOT_ENV` (`packages/contract/src/pi-runtime.ts`
+  — the contract owns the name because neither end may import the other). An
+  absent or incomplete directory means the bundled Pi, and a package missing
+  from a managed tree falls back to the bundled one rather than failing.
+- Installs live in `<userData>/pi/versions/<version>`, built in `staging` and
+  renamed into place, so a directory under `versions` is complete or absent.
+  `active.json` is a pointer; a pointer at a version that is gone reads as the
+  bundled Pi.
+- The install plan comes from the Pi release's own
+  `pi-coding-agent-install-package{,-lock}.json`, verified against its
+  `SHA256SUMS`; payloads are the registry tarballs that lockfile names, each
+  checked against its `integrity`. `@earendil-works/pi-server` is not in that
+  lockfile and is added with its dependency closure — see
+  `closeOverDependencies`.
+- **No lifecycle scripts run.** `apps/desktop/src/main/pi/install.ts` explains
+  why that is safe for this closure and what would make it unsafe.
+- Everything is main-owned. The host is the process with Pi loaded, so it is the
+  last one that can be asked to replace it.
+
 ## Diagnosing an installed copy
 
 - An installed application has no console, so `observability/log-file.ts` copies

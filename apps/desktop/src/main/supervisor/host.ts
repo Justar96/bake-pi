@@ -8,6 +8,7 @@ import {
   type ContractError,
   type Hello,
   type HelloAck,
+  PI_ROOT_ENV,
   type ResponseEnvelope,
   checkEnvelope,
   isCompatible,
@@ -46,6 +47,14 @@ export interface UtilityProcessLauncherOptions {
    * answering.
    */
   onPhase?: (phase: "forked" | "acked") => void
+  /**
+   * The managed Pi directory this start should prefer, asked for at each start.
+   *
+   * `undefined` means the copy inside the asar, which is always present and is
+   * what the application ships with. See `pi-resolution.ts` in the agent host
+   * for how the host acts on it.
+   */
+  piRoot?: () => string | undefined
 }
 
 /**
@@ -97,11 +106,23 @@ export class UtilityProcessLauncher implements HostLauncher {
     if (this.#child !== undefined) {
       throw new BakePiError("host_unavailable", { detail: "host_already_started", retryable: true })
     }
+    /*
+      Read at start rather than captured once, for the same reason the
+      quarantine list is: the answer changes between one start and the next.
+      Installing or reverting a managed Pi restarts the host, and the restart is
+      the moment the new choice takes effect — a value bound when the launcher
+      was constructed would keep every later start on the Pi that was active
+      when the application opened.
+    */
+    const piRoot = this.#options.piRoot?.()
     const child = utilityProcess.fork(this.#options.entry, [], {
       serviceName: "bake-pi-agent-host",
       // Program output is diagnostics, never protocol. Piping it keeps a
       // `console.log` from a user extension out of anything that parses.
       stdio: "pipe",
+      env: piRoot === undefined
+        ? { ...process.env }
+        : { ...process.env, [PI_ROOT_ENV]: piRoot },
     })
     this.#child = child
     this.#options.onPhase?.("forked")
