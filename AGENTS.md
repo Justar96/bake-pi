@@ -112,6 +112,13 @@ into main. `scripts/boundaries.test.ts` enforces dependency and bridge boundarie
   button that reveals the log; `reveal_log_file` is main-owned because the
   moment it is wanted is the moment no host is answering.
 - Ask for that file first when a report says only that the host disconnected.
+- `bun run packaged` copies the package out of the repository before running it.
+  Node resolves a bare specifier by walking up from the importing file, so a
+  package left in `apps/desktop/out` reaches this repository's hoisted
+  `node_modules` and every dependency the production stage forgot resolves
+  anyway. That is how 0.1.0-beta.2 shipped without `@earendil-works/pi-server`.
+- The staged dependency list comes from `packages/agent-host/package.json`.
+  Add a runtime dependency there, not to `forge.config.ts`.
 
 ## Measurement rules
 

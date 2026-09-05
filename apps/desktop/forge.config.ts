@@ -53,11 +53,19 @@ export const FUSES = {
  * The stage is what the running application needs and nothing else. The
  * three of our own bundles that are self-contained need no dependency at all;
  * the agent host keeps Pi external (`build/shared.ts` says why at length), so
- * Pi and the two of its packages the host imports directly are the runtime
- * dependency list, pinned to the version the agent host declares. `bun install
- * --production` then lays them out under the copy the same way the root has
- * them, which is the layout Pi's jiti and WASM path resolution are tested
- * against.
+ * what that workspace declares is the runtime dependency list. It is read from
+ * its manifest rather than restated here, and that is not tidiness: it was
+ * restated here, as three hand-picked packages, and the list silently omitted
+ * `@earendil-works/pi-server`. Nothing caught it, because a package tested
+ * inside this repository resolves anything the stage forgot from the
+ * repository's own hoisted `node_modules`, one directory walk up. The first
+ * install on a machine that had no such directory died at
+ * `ERR_MODULE_NOT_FOUND` before its handshake. `scripts/packaged.ts` now runs
+ * the package from outside the tree so the walk has nothing to find.
+ *
+ * `bun install --production` then lays the list out under the copy the same way
+ * the root has it, which is the layout Pi's jiti and WASM path resolution are
+ * tested against.
  *
  * `main` and `type` are copied from the manifest rather than restated, so the
  * entry Forge reads is the entry the build wrote.
@@ -66,8 +74,16 @@ const stageProduction = (buildPath: string): void => {
   const desktop = readJson(join(import.meta.dirname, "package.json"))
   const host = readJson(join(import.meta.dirname, "../../packages/agent-host/package.json"))
   const hostDependencies = host.dependencies as Record<string, string>
-  const piVersion = hostDependencies["@earendil-works/pi-coding-agent"]
-  if (piVersion === undefined) throw new Error("agent host does not declare its Pi version")
+  if (hostDependencies["@earendil-works/pi-coding-agent"] === undefined) {
+    throw new Error("agent host does not declare its Pi version")
+  }
+  // Everything the agent host depends on except the workspaces, which are
+  // bundled into `dist` and have no published version to install. A dependency
+  // the bundler inlined costs a few unused files here; one left out costs a
+  // host that cannot start.
+  const runtimeDependencies = Object.fromEntries(
+    Object.entries(hostDependencies).filter(([, range]) => !range.startsWith("workspace:")),
+  )
 
   for (const entry of readdirSync(buildPath)) {
     if (entry !== "dist") rmSync(join(buildPath, entry), { recursive: true, force: true })
@@ -82,11 +98,7 @@ const stageProduction = (buildPath: string): void => {
     private: true,
     type: desktop.type,
     main: desktop.main,
-    dependencies: {
-      "@earendil-works/pi-coding-agent": piVersion,
-      "@earendil-works/pi-agent-core": piVersion,
-      "@earendil-works/pi-ai": piVersion,
-    },
+    dependencies: runtimeDependencies,
   }, null, 2))
 
   // The stage discards everything but dist, so carry our own license as well
