@@ -131,5 +131,27 @@ try {
   console.log(`packaged: ${executable}`)
   console.log(`packaged: started, reached Pi ${report.piVersion ?? "?"} on Electron ${report.electron ?? "?"}, and shut down in ${String(ms)} ms`)
 } finally {
-  rmSync(scratch, { recursive: true, force: true })
+  await discard(scratch)
+}
+
+/**
+ * Removes the copy, and never fails the check for failing to.
+ *
+ * Windows releases the handles on a just-exited process's image lazily, so the
+ * first `rm` of a 400 MB tree the app was running out of can arrive at `EBUSY`
+ * — it did, on CI, for a package that had already started and shut down
+ * cleanly. The directory is under the system temp directory and the operating
+ * system will collect it; reporting the package broken because its scratch
+ * copy outlived it by a second would be a worse answer than saying nothing.
+ */
+async function discard(directory: string): Promise<void> {
+  for (let attempt = 0; attempt < 10; ++attempt) {
+    try {
+      rmSync(directory, { recursive: true, force: true })
+      return
+    } catch {
+      await Bun.sleep(200)
+    }
+  }
+  console.warn(`packaged: left ${directory} behind; the operating system collects it`)
 }
