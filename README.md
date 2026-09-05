@@ -1,4 +1,4 @@
-<img src="assets/app-icon/07-cube-connected-v1.png" alt="" width="96" align="right">
+<img src="assets/app-icon/07-cube-connected-v1.png" alt="" width="96">
 
 # Bake Pi
 
