@@ -13,6 +13,7 @@ interface Harness {
   workspaceChoices: number
   recentWorkspaceOpens: number
   attachmentChoices: number
+  logReveals: number
 }
 
 const harness = (answer?: (name: CommandName) => unknown): Harness => {
@@ -23,6 +24,7 @@ const harness = (answer?: (name: CommandName) => unknown): Harness => {
     workspaceChoices: 0,
     recentWorkspaceOpens: 0,
     attachmentChoices: 0,
+    logReveals: 0,
   } as Harness
   world.routing = {
     guard: { check: (_event, name, params) => ({ name: name as CommandName, params }) },
@@ -55,6 +57,10 @@ const harness = (answer?: (name: CommandName) => unknown): Harness => {
         world.attachmentChoices += 1
         return { attachments: [] }
       },
+      revealLogFile: async () => {
+        world.logReveals += 1
+        return { path: "C:/logs/bake-pi.log" }
+      },
     },
   }
   return world
@@ -68,6 +74,16 @@ describe("commands main answers itself", () => {
 
     expect(outcome).toEqual({ ok: true, result: { started: true, quarantined: [] } })
     expect(world.restarts).toBe(1)
+    expect(world.sent).toEqual([])
+  })
+
+  test("reveal_log_file is answered with no host, which is the only time it is asked", async () => {
+    const world = harness()
+
+    const outcome = await routeCommand(world.routing, senderEvent, "reveal_log_file", {})
+
+    expect(outcome).toEqual({ ok: true, result: { path: "C:/logs/bake-pi.log" } })
+    expect(world.logReveals).toBe(1)
     expect(world.sent).toEqual([])
   })
 

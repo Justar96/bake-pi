@@ -15,7 +15,7 @@ import { BakePiBrand } from "./ui/BakePiBrand.tsx"
 import { TetrisLoader } from "./ui/TetrisLoader.tsx"
 import { Workbench } from "./features/workbench/Workbench.tsx"
 import { WorkspaceDialog } from "./features/workbench/WorkspaceDialog.tsx"
-import type { WorkspaceRuntime } from "@bake-pi/contract"
+import type { ContractError, WorkspaceRuntime } from "@bake-pi/contract"
 
 /** The four the picker offers, named once so a stored value can be checked against them. */
 const THEME_CHOICES = ["system", "light", "dark", "high-contrast"] as const satisfies readonly ThemeChoice[]
@@ -82,15 +82,15 @@ export const App = (): React.JSX.Element => {
         moved from the caption buttons — which on Windows are not a grab.
       */}
       {onWorkbench ? null : <div aria-hidden="true" {...stylex.props(styles.windowDrag)} />}
-      {workspace === undefined && state.connection.status !== "connected" ? <ConnectionScreen state={state.connection.status} /> : workspace === undefined ? <NoWorkspace /> : needsTrust ? <TrustWorkspace workspaceName={workspace.displayName} root={workspace.root} runtime={workspace.runtime} onReviewed={() => setTrustReviewed(workspace.id)} /> : <Workbench theme={theme} onTheme={chooseTheme} disclosure={disclosure} onDisclosure={chooseDisclosure} />}
+      {workspace === undefined && state.connection.status !== "connected" ? <ConnectionScreen state={state.connection.status} error={state.connection.status === "disconnected" ? state.connection.error : undefined} /> : workspace === undefined ? <NoWorkspace /> : needsTrust ? <TrustWorkspace workspaceName={workspace.displayName} root={workspace.root} runtime={workspace.runtime} onReviewed={() => setTrustReviewed(workspace.id)} /> : <Workbench theme={theme} onTheme={chooseTheme} disclosure={disclosure} onDisclosure={chooseDisclosure} />}
     </div>
     </StepDisclosureContext.Provider>
     </AppearanceContext.Provider>
   )
 }
 
-const ConnectionScreen = ({ state }: { state: "connecting" | "disconnected" }): React.JSX.Element =>
-  state === "connecting" ? <Splash /> : <HostDisconnected />
+const ConnectionScreen = ({ state, error }: { state: "connecting" | "disconnected"; error?: ContractError | undefined }): React.JSX.Element =>
+  state === "connecting" ? <Splash /> : <HostDisconnected error={error} />
 
 /**
  * The starting screen: a thumbnail, a line saying what is happening, and a
@@ -120,13 +120,34 @@ const Splash = (): React.JSX.Element => (
   </main>
 )
 
-const HostDisconnected = (): React.JSX.Element => (
+/**
+ * The screen a failed host leaves behind, and for a while the only thing it
+ * said was that the host was gone.
+ *
+ * That was survivable when the host had already been running — the sentence
+ * about recovery is true, and restarting is the whole answer. It was useless
+ * for the case that actually reaches us: a first launch on somebody else's
+ * machine where the host never started, where "disconnected" is the only word
+ * anyone has, and where the reason was being discarded twice over on the way
+ * here. So the reason is shown when there is one, and the log is one click
+ * away, because a person who cannot fix this themselves can at least send the
+ * file to somebody who can.
+ */
+const HostDisconnected = ({ error }: { error?: ContractError | undefined }): React.JSX.Element => (
   <main id="main-content" {...stylex.props(scrollbars.thin, styles.center)}>
     <span {...stylex.props(styles.trustIcon, styles.dangerIcon)}><RotateCcw size={26} /></span>
     <span {...stylex.props(styles.kicker)}>Connection</span>
     <h1 {...stylex.props(styles.emptyTitle)}>Agent host disconnected</h1>
     <p {...stylex.props(styles.body)}>Your conversation remains visible after recovery. Restart the host to reopen safe sessions.</p>
-    <button type="button" onClick={() => void store.restartHost().catch((error: unknown) => store.capture(error))} {...stylex.props(focus.control, styles.primary)}><RotateCcw size={16} /> Restart agent host</button>
+    {error === undefined ? undefined : (
+      <code {...stylex.props(styles.rootPath, styles.failure)}>
+        {error.code}{error.detail === undefined ? "" : `: ${error.detail}`}
+      </code>
+    )}
+    <div {...stylex.props(styles.actions)}>
+      <button type="button" onClick={() => void store.restartHost().catch((thrown: unknown) => store.capture(thrown))} {...stylex.props(focus.control, styles.primary)}><RotateCcw size={16} /> Restart agent host</button>
+      <button type="button" onClick={() => void store.revealLogFile().catch((thrown: unknown) => store.capture(thrown))} {...stylex.props(focus.control, styles.secondary)}><FolderOpenIcon width={16} height={16} /> Show log</button>
+    </div>
   </main>
 )
 
@@ -320,6 +341,8 @@ const styles = stylex.create({
   title: { maxWidth: "24ch", marginBlock: space.sm, fontFamily: typography.display, fontSize: typography.title, lineHeight: typography.titleLine, fontWeight: 500, textWrap: "balance", overflowWrap: "anywhere" },
   body: { maxWidth: "48ch", marginBlockStart: space.sm, marginBlockEnd: space.lg, color: colors.textMuted, lineHeight: typography.bodyLine },
   primary: { minHeight: size.control, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: space.sm, paddingInline: space.lg, color: colors.accentOn, backgroundColor: { default: colors.accent, ":hover": colors.accentHover, ":active": colors.accent }, borderWidth: 0, borderRadius: radius.md, cursor: { default: "pointer", ":disabled": "not-allowed" }, opacity: { default: 1, ":disabled": 0.5 }, fontWeight: 700, WebkitAppRegion: "no-drag" },
+  actions: { display: "flex", flexWrap: "wrap", gap: space.sm, justifyContent: "center", marginBlockStart: space.lg },
+  failure: { marginBlockStart: space.sm, color: colors.danger },
   secondary: { minHeight: size.control, display: "inline-flex", alignItems: "center", gap: space.sm, paddingInline: space.lg, color: { default: colors.textMuted, ":hover": colors.text }, backgroundColor: { default: colors.surface, ":hover": colors.surfaceRaised }, borderWidth: effects.hairline, borderStyle: "solid", borderColor: colors.borderStrong, borderRadius: radius.md, cursor: { default: "pointer", ":disabled": "not-allowed" }, opacity: { default: 1, ":disabled": 0.5 }, fontWeight: 600, WebkitAppRegion: "no-drag" },
   splash: { display: "flex", flexDirection: "column", alignItems: "center", gap: space.lg },
   splashStatus: { color: colors.textMuted, fontSize: typography.caption, lineHeight: typography.captionLine },

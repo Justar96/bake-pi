@@ -102,6 +102,7 @@ export const MAIN_OWNED_COMMANDS = [
   "list_workspace_locations",
   "reopen_recent_workspace",
   "restart_host",
+  "reveal_log_file",
 ] as const satisfies readonly CommandName[]
 export type MainOwnedCommand = (typeof MAIN_OWNED_COMMANDS)[number]
 

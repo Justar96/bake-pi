@@ -1,4 +1,4 @@
-import { BrowserWindow, MessageChannelMain, app, dialog, net } from "electron"
+import { BrowserWindow, MessageChannelMain, app, dialog, net, shell } from "electron"
 import squirrelStartup from "electron-squirrel-startup"
 import { BakePiError, type Attachment, type HostConnectionNotice } from "@bake-pi/contract"
 import { stat, writeFile } from "node:fs/promises"
@@ -19,6 +19,7 @@ import { formatCommandLatency } from "./supervisor/recovery.ts"
 import { HostSupervisor } from "./supervisor/supervisor.ts"
 import { createMainWindow } from "./window.ts"
 import { installUpdater } from "./update.ts"
+import { installLogFile, logFilePath } from "./observability/log-file.ts"
 import { watchRendererBundle } from "./dev-reload.ts"
 import { RecentWorkspaceStore } from "./recent-workspace.ts"
 import {
@@ -93,6 +94,16 @@ if (squirrelStartup) {
   // Without it the taskbar shows the window as a second, unpinned entry beside
   // the pinned shortcut, and notifications would come from "electron".
   if (process.platform === "win32") app.setAppUserModelId(app.isPackaged ? "com.squirrel.BakePi.bake-pi" : "works.earendil.bakepi.dev")
+
+  // Before anything that can fail. An installed copy has no console, so until
+  // this runs every diagnostic it writes is lost, including the ones that
+  // explain why the rest of startup did not happen.
+  // `logs` is derived from `userData`, so a run with `--user-data-dir` writes
+  // into its own directory and a smoke test never touches the real profile.
+  installLogFile(
+    app.getPath("logs"),
+    `bake-pi ${app.getVersion()} on ${process.platform}-${process.arch}, electron ${process.versions.electron}, node ${process.versions.node}`,
+  )
 
   const distRoot = join(import.meta.dirname, "..")
   const guard = new CommandGuard()
@@ -605,6 +616,12 @@ Bake Pi can install its own copy inside ${distro}, under ~/.cache/bake-pi. It is
           attachments.push({ path, mediaType: attachmentMediaType(path), bytes })
         }
         return { attachments }
+      },
+      revealLogFile: async () => {
+        const path = logFilePath()
+        if (path === undefined) throw new BakePiError("internal_error", { detail: "no_log_file" })
+        shell.showItemInFolder(path)
+        return await Promise.resolve({ path })
       },
     }, () => resourceProbe?.sample("command"))
 

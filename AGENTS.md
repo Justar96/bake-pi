@@ -102,6 +102,17 @@ into main. `scripts/boundaries.test.ts` enforces dependency and bridge boundarie
   scrolling coverage, selection, and session switching. `store/stream-batcher.ts`
   is the single stream-delivery frame boundary; do not add a second store scheduler.
 
+## Diagnosing an installed copy
+
+- An installed application has no console, so `observability/log-file.ts` copies
+  every `console` line in main, plus the agent host's piped stdout and stderr,
+  into `<userData>/logs/bake-pi.log`. It rotates at 4 MB and keeps one previous
+  generation. A run with `--user-data-dir` logs into that directory instead.
+- The disconnected screen shows the `ContractError` behind the failure and has a
+  button that reveals the log; `reveal_log_file` is main-owned because the
+  moment it is wanted is the moment no host is answering.
+- Ask for that file first when a report says only that the host disconnected.
+
 ## Measurement rules
 
 - Compute durations within one process; subtract durations, never instants from

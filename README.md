@@ -21,6 +21,8 @@ Beta builds are on the [releases page](https://github.com/Justar96/bake-pi/relea
 
 No macOS build yet. The builds are unsigned, so Windows shows a SmartScreen warning; choose **More info → Run anyway**. Windows updates itself from the releases feed once installed.
 
+If it opens on "Agent host disconnected", the screen names the failure and its **Show log** button reveals `bake-pi.log`. Attach that file to an issue.
+
 ## What it does differently
 
 - **One source of truth.** Pi owns session trees, credentials, tools, extensions, and compaction. Bake Pi never keeps a parallel copy.

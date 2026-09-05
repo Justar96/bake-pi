@@ -51,4 +51,18 @@ export const runtimeCommands = defineCommands({
       quarantined: Type.Array(SessionId),
     }),
   },
+  /**
+   * Shows the diagnostic log in the desktop file manager.
+   *
+   * Answered by main for the same reason `restart_host` is: the moment somebody
+   * wants this is the moment the host is not answering. An installed
+   * application writes its console nowhere a person can reach, so a host that
+   * dies before the handshake leaves no evidence at all; the log file is that
+   * evidence, and this is how it is found without knowing where Electron keeps
+   * application data.
+   */
+  reveal_log_file: {
+    params: Type.Object({}),
+    result: Type.Object({ path: Type.String({ maxLength: 4096 }) }),
+  },
 })

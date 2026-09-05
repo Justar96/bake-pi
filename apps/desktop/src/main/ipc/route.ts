@@ -31,6 +31,12 @@ export interface Supervision {
   chooseAttachments: (
     params: CommandParams<"choose_attachments">,
   ) => Promise<CommandResult<"choose_attachments">>
+  /**
+   * Kept out of this module rather than done here, although it is two lines:
+   * showing a file needs Electron's `shell`, and this file imports Electron for
+   * types only so that routing stays testable without a main process.
+   */
+  revealLogFile: () => Promise<CommandResult<"reveal_log_file">>
 }
 
 /** The collaborators, narrowed to what routing actually uses. */
@@ -63,6 +69,7 @@ const MAIN_HANDLERS: {
   reopen_recent_workspace: async (routing, params) => await routing.supervision.reopenRecentWorkspace(params),
   create_workspace: async (routing, params) => await routing.supervision.createWorkspace(params),
   choose_attachments: async (routing, params) => await routing.supervision.chooseAttachments(params),
+  reveal_log_file: async (routing) => await routing.supervision.revealLogFile(),
 }
 
 /**

@@ -598,3 +598,54 @@ describe("workspace resume", () => {
     expect(store.views.session(snapshot.summary.id)).toBeUndefined()
   })
 })
+
+describe("a host that goes away says why", () => {
+  // The production intake, again: the point of the test is that the reason
+  // survives the trip the real event takes, not that a field can be assigned.
+  const intake = (store: InstanceType<typeof SessionStore>): ((event: EventEnvelope) => void) => {
+    void store
+    const port = { onmessage: null as ((event: MessageEvent) => void) | null, start() {}, close() {}, postMessage() {} }
+    for (const listener of messageListeners) {
+      listener({ source: fakeWindow, data: "bakepi:event-port", ports: [port] } as unknown as MessageEvent)
+    }
+    return (event) => port.onmessage!({ data: event } as MessageEvent)
+  }
+
+  test("a fatal error keeps its reason, which is all an unreproducible startup failure leaves", async () => {
+    handlers.get_runtime_info = () => ({
+      appVersion: "test", piVersion: "test", electronVersion: "test",
+      nodeVersion: "test", platform: "win32", arch: "x64",
+    })
+    const store = await readyStore()
+    const deliver = intake(store)
+
+    deliver({
+      kind: "event",
+      name: "fatal_error",
+      sequence: 1,
+      payload: { error: { code: "handshake_failed", detail: "pi_runtime", retryable: false } },
+    } as EventEnvelope)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    const { connection } = store.getSnapshot()
+    expect(connection.status).toBe("disconnected")
+    expect(connection.status === "disconnected" ? connection.error : undefined)
+      .toEqual({ code: "handshake_failed", detail: "pi_runtime", retryable: false })
+  })
+
+  test("an orderly shutdown carries no error, because nothing went wrong", async () => {
+    handlers.get_runtime_info = () => ({
+      appVersion: "test", piVersion: "test", electronVersion: "test",
+      nodeVersion: "test", platform: "win32", arch: "x64",
+    })
+    const store = await readyStore()
+    const deliver = intake(store)
+
+    deliver({ kind: "event", name: "host_shutting_down", sequence: 1, payload: { reason: "requested" } } as EventEnvelope)
+    await new Promise((resolve) => setTimeout(resolve, 10))
+
+    const { connection } = store.getSnapshot()
+    expect(connection.status).toBe("disconnected")
+    expect(connection.status === "disconnected" ? connection.error : undefined).toBeUndefined()
+  })
+})

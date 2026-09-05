@@ -18,6 +18,7 @@ import { NO_SHUTDOWN, type ShutdownTimings } from "./shutdown.ts"
 import type { HostLauncher, RendererEventChannel } from "./supervisor.ts"
 import { discoverWslNode, nodeBinDir, type WslNode } from "./wsl-node.ts"
 import { runWsl, spawnWsl } from "./wsl-process.ts"
+import { appendLog } from "../observability/log-file.ts"
 
 const HANDSHAKE_TIMEOUT_MS = 15_000
 const COMMAND_TIMEOUT_MS = 120_000
@@ -571,5 +572,9 @@ const fromContractError = (error: ContractError): BakePiError =>
 const delay = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
 
 const log = (scope: string, chunk: Buffer): void => {
-  process.stdout.write(`[${scope}] ${chunk.toString("utf8")}`)
+  const text = chunk.toString("utf8")
+  process.stdout.write(`[${scope}] ${text}`)
+  // The console this reaches does not exist in an installed copy, and a host
+  // that fails on a machine we cannot reach leaves nothing else behind.
+  appendLog(scope, text)
 }

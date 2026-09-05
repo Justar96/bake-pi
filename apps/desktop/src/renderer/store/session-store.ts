@@ -248,7 +248,13 @@ export class SessionStore {
       }
       if (event.name === "host_shutting_down" || event.name === "fatal_error") {
         this.#connectionGeneration += 1
-        this.#patch({ connection: { status: "disconnected" } })
+        // `fatal_error` carries the reason the host is going away, and it used
+        // to be dropped here. It is the only account of a host that failed
+        // during its own startup, which is exactly the failure nobody can
+        // reproduce, and the screen that replaces this one has nothing else to
+        // show.
+        const error = event.name === "fatal_error" ? (event.payload as { error: ContractError }).error : undefined
+        this.#patch({ connection: { status: "disconnected", ...(error === undefined ? {} : { error }) } })
         return
       }
       if (event.name === "workspace_changed") {
@@ -866,6 +872,11 @@ export class SessionStore {
 
   async restartHost(): Promise<void> {
     await this.send("restart_host", {})
+  }
+
+  /** Shows the diagnostic log in the file manager. Answered by main, so it works with no host. */
+  async revealLogFile(): Promise<void> {
+    await this.send("reveal_log_file", {})
   }
 
   dismissNotice(index: number): void {
