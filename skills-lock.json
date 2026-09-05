@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "skills": {
+    "diffs": {
+      "source": "pierrecomputer/pierre",
+      "sourceType": "github",
+      "skillPath": "skills/diffs/SKILL.md",
+      "computedHash": "6a31256f6d241d6c2fe7329b2e02b0ffcbcbd323ddd8b62b26439c979d50c6cf"
+    },
+    "stylex-authoring": {
+      "source": "amogharajsandur/skills",
+      "sourceType": "github",
+      "skillPath": "stylex/stylex-authoring/SKILL.md",
+      "computedHash": "e8ec85d8812f2e9b15075334bf26d774b811563708354dc0207f14fc98738d95"
+    },
+    "trees": {
+      "source": "pierrecomputer/pierre",
+      "sourceType": "github",
+      "skillPath": "skills/trees/SKILL.md",
+      "computedHash": "8c89773a6e72c8c488b75c5776ba519e361790e54992d276c95d79177d1d0291"
+    }
+  }
+}

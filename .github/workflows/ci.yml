@@ -1,0 +1,86 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  verify:
+    # Windows first, deliberately. It is the platform with the path
+    # canonicalization, process-tree and shell behaviour most likely to break,
+    # so it is the one that gates a merge rather than the one checked last.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: windows
+
+      - name: Typecheck every surface
+        run: bun run typecheck
+
+      - name: Unit and boundary tests
+        run: bun test
+
+      - name: Build all four bundles
+        run: bun run build
+
+      # Launches Electron for real: preload, sandboxed renderer, utility
+      # process, Pi handshake. Needs a display, which windows-latest has.
+      #
+      # It also prints cold start, the handshake and graceful shutdown decomposed
+      # into legs. Those are printed, not asserted at their budgets: Milestone 3's
+      # budgets hold "on the named minimum machine" and a shared runner is not it,
+      # so a real-budget assertion here would be a flaky gate that says nothing
+      # about the product. The ceilings it does enforce sit an order of magnitude
+      # out and catch only genuine breakage — except shutdown's, which cannot,
+      # because a host that never answers costs almost exactly the two seconds of
+      # its own race.
+      - name: Startup smoke test
+        run: bun run smoke
+
+      # The process-tree guarantee, measured rather than asserted: a real
+      # utility process, a real tool, and a process that tool started. Runs on
+      # Windows because that is where the guarantee is claimed.
+      - name: Orphaned tool processes
+        run: bun run orphans
+
+      # What a session and a turn cost, weighed on a real host rather than
+      # estimated. Fails if a change makes either cost more than
+      # `session/budget.ts` declares — which is the only way the enforced caps
+      # can be shown to still mean what they say.
+      - name: Capacity budgets
+        run: bun run budgets
+
+      - name: Provenance is current
+        run: |
+          bun run provenance
+          git diff --exit-code docs/reference/pi-upstream.md
+
+  # The package, not the development build: Forge stages Pi into the asar,
+  # stamps the icon and manifest, flips the fuses. `bun run packaged` then
+  # reads the fuses back out of the executable and starts the result for real.
+  # This is what catches "works in development, fails when packaged", and it
+  # is the roadmap's packaged-fuse proof.
+  package:
+    needs: verify
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: windows
+      - run: bun run package
+      - run: bun run packaged
+
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - run: bun install --frozen-lockfile
+      - run: bun run drift >> "$GITHUB_STEP_SUMMARY"

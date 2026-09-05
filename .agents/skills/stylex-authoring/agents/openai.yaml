@@ -1,0 +1,4 @@
+interface:
+  display_name: "StyleX Authoring"
+  short_description: "Write robust StyleX styles and themes"
+  default_prompt: "Use $stylex-authoring to implement or review StyleX styles in this project."

@@ -1,0 +1,21 @@
+name: upstream-drift
+
+# Weekly, because the plan's bet is that upgrades stay bounded by an automated
+# suite rather than by manual retesting — and that only pays if drift is noticed
+# while it is still small.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - run: bun install --frozen-lockfile
+      - name: Report drift
+        run: bun run drift >> "$GITHUB_STEP_SUMMARY"

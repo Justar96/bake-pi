@@ -1,0 +1,5 @@
+{
+  "name": "display-probe",
+  "private": true,
+  "main": "main.js"
+}

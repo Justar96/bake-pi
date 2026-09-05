@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">Bakepi connected tetromino cube</title>
+  <desc id="description">An isometric cube with four interlocking T tetrominoes on each face. Each piece contains four equal squares. Colors touch directly. Black lines mark only cube edges.</desc>
+  <defs><clipPath id="face"><rect width="4" height="4"/></clipPath></defs>
+  <!-- top: BAAA / BBAD / BCDD / CCCD; each color is one four-cell T tetromino. -->
+  <g transform="matrix(90 51.961524 -90 51.961524 512 96)" clip-path="url(#face)" stroke-width="0.006" stroke-linejoin="miter">
+    <path fill="#2EC4C6" stroke="#2EC4C6" d="M1 0L2 0L3 0L4 0L4 1L3 1L3 2L2 2L2 1L1 1Z"/>
+    <path fill="#FFB000" stroke="#FFB000" d="M0 0L1 0L1 1L2 1L2 2L1 2L1 3L0 3L0 2L0 1Z"/>
+    <path fill="#FF584B" stroke="#FF584B" d="M1 2L2 2L2 3L3 3L3 4L2 4L1 4L0 4L0 3L1 3Z"/>
+    <path fill="#626BFF" stroke="#626BFF" d="M3 1L4 1L4 2L4 3L4 4L3 4L3 3L2 3L2 2L3 2Z"/>
+  </g>
+  <!-- left: CBBB / CCBA / CDAA / DDDA; each color is one four-cell T tetromino. -->
+  <g transform="matrix(90 51.961524 0 103.923048 152 303.846097)" clip-path="url(#face)" stroke-width="0.006" stroke-linejoin="miter">
+    <path fill="#2EC4C6" stroke="#2EC4C6" d="M3 1L4 1L4 2L4 3L4 4L3 4L3 3L2 3L2 2L3 2Z"/>
+    <path fill="#FFB000" stroke="#FFB000" d="M1 0L2 0L3 0L4 0L4 1L3 1L3 2L2 2L2 1L1 1Z"/>
+    <path fill="#FF584B" stroke="#FF584B" d="M0 0L1 0L1 1L2 1L2 2L1 2L1 3L0 3L0 2L0 1Z"/>
+    <path fill="#626BFF" stroke="#626BFF" d="M1 2L2 2L2 3L3 3L3 4L2 4L1 4L0 4L0 3L1 3Z"/>
+  </g>
+  <!-- right: DCCC / DDCB / DABB / AAAB; each color is one four-cell T tetromino. -->
+  <g transform="matrix(90 -51.961524 0 103.923048 512 511.692194)" clip-path="url(#face)" stroke-width="0.006" stroke-linejoin="miter">
+    <path fill="#2EC4C6" stroke="#2EC4C6" d="M1 2L2 2L2 3L3 3L3 4L2 4L1 4L0 4L0 3L1 3Z"/>
+    <path fill="#FFB000" stroke="#FFB000" d="M3 1L4 1L4 2L4 3L4 4L3 4L3 3L2 3L2 2L3 2Z"/>
+    <path fill="#FF584B" stroke="#FF584B" d="M1 0L2 0L3 0L4 0L4 1L3 1L3 2L2 2L2 1L1 1Z"/>
+    <path fill="#626BFF" stroke="#626BFF" d="M0 0L1 0L1 1L2 1L2 2L1 2L1 3L0 3L0 2L0 1Z"/>
+  </g>
+  <g fill="none" stroke="#000000" stroke-width="20" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M512 96L872 303.846097V719.538291L512 927.384388L152 719.538291V303.846097Z"/>
+    <path d="M152 303.846097L512 511.692194L872 303.846097M512 511.692194V927.384388"/>
+  </g>
+</svg>

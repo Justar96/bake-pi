@@ -1,0 +1,61 @@
+{
+  "name": "bake-pi",
+  "private": true,
+  "version": "0.1.0-beta.1",
+  "license": "MIT",
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "bun": ">=1.4.0"
+  },
+  "scripts": {
+    "typecheck": "bun run --parallel typecheck:contract typecheck:host typecheck:main typecheck:preload typecheck:renderer typecheck:tools typecheck:tests",
+    "test": "bun test",
+    "build": "bun run apps/desktop/build/all.ts",
+    "build:production": "NODE_ENV=production bun run apps/desktop/build/all.ts",
+    "dev": "bun run apps/desktop/build/all.ts --watch",
+    "app-icon": "bun run scripts/app-icon.ts",
+    "package": "bun run build:production && cd apps/desktop && node ../../node_modules/@electron-forge/cli/dist/electron-forge.js package",
+    "packaged": "bun run scripts/packaged.ts",
+    "make": "bun run build:production && cd apps/desktop && node ../../node_modules/@electron-forge/cli/dist/electron-forge.js make",
+    "publish": "bun run build:production && cd apps/desktop && node ../../node_modules/@electron-forge/cli/dist/electron-forge.js publish",
+    "provenance": "bun run scripts/provenance.ts",
+    "drift": "bun run scripts/drift-check.ts",
+    "typecheck:contract": "tsc -p packages/contract",
+    "typecheck:host": "tsc -p packages/agent-host",
+    "typecheck:main": "tsc -p apps/desktop/tsconfig.main.json",
+    "typecheck:preload": "tsc -p apps/desktop/tsconfig.preload.json",
+    "typecheck:renderer": "tsc -p apps/desktop/tsconfig.renderer.json",
+    "typecheck:tools": "tsc -p tsconfig.tools.json",
+    "typecheck:tests": "tsc -p tsconfig.tests.json",
+    "smoke": "bun run scripts/smoke.ts",
+    "wsl-smoke": "bun run scripts/wsl-smoke.ts",
+    "orphans": "bun run scripts/orphans.ts",
+    "budgets": "bun run scripts/budgets.ts",
+    "resources": "bun run scripts/resources.ts",
+    "clocks": "bun run scripts/clocks.ts",
+    "frame": "bun run scripts/frame.ts",
+    "manifest": "bun run scripts/manifest.ts",
+    "postinstall": "bun run node_modules/electron/install.js && bun run scripts/manifest.ts",
+    "live-provider": "bun run scripts/live-provider.ts",
+    "verify": "bun run typecheck && bun test && bun run build && bun run smoke && bun run journey && bun run orphans && bun run budgets",
+    "lab-icons": "bun run scripts/lab-icons.ts",
+    "journey": "bun run scripts/journey.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "1.4.0",
+    "@types/node": "26.4.0",
+    "resedit": "2.0.3",
+    "typescript": "7.0.2"
+  },
+  "trustedDependencies": [
+    "electron",
+    "electron-winstaller"
+  ],
+  "overrides": {
+    "yauzl": "3.4.0"
+  }
+}

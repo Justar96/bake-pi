@@ -1,0 +1,10 @@
+# Hoisted linker: Electron and Pi both expect ordinary node_modules resolution.
+# Pi loads user extensions through jiti from arbitrary absolute paths and reads a
+# WASM codec by path; a symlinked or isolated layout breaks both.
+[install]
+linker = "hoisted"
+exact = true
+saveTextLockfile = true
+
+[test]
+coverage = false

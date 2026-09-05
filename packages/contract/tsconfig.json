@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Deliberately neither "dom" nor @types/node. The contract is imported by
+    // the renderer (browser), by main and by the agent host (node). Anything
+    // ambient that only one of them has is a type error here, before it is a
+    // bundle error there.
+    "lib": ["ES2023"],
+    "types": []
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/**/*.test.ts"]
+}

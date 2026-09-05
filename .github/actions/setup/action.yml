@@ -1,0 +1,41 @@
+name: setup
+description: Bun, Node for Forge, and the two caches a packaging job spends most of its time filling.
+
+inputs:
+  cache-key:
+    description: Distinguishes the caches of jobs on different runners.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: 1.4.0
+
+    # Forge runs under Node, not Bun (AGENTS.md says why). 24 is the line
+    # Electron 44 embeds, so what packages the app is the same Node the app
+    # runs on.
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+
+    # Bun's own package cache. `bun install` still verifies against the
+    # lockfile; this only spares the download.
+    - uses: actions/cache@v4
+      with:
+        path: ~/.bun/install/cache
+        key: bun-${{ inputs.cache-key }}-${{ hashFiles('bun.lock') }}
+        restore-keys: bun-${{ inputs.cache-key }}-
+
+    # The Electron zip the packager extracts, roughly 100 MB per platform,
+    # keyed on the Electron version alone because that is all it depends on.
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cache/electron
+          ~/AppData/Local/electron/Cache
+        key: electron-${{ inputs.cache-key }}-${{ hashFiles('apps/desktop/package.json') }}
+
+    - run: bun install --frozen-lockfile
+      shell: bash

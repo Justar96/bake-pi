@@ -1,0 +1,14 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Electron ships its own types with the package; no DOM lib, because main
+    // has no document and code that thinks it does belongs in the renderer.
+    "lib": ["ES2023"],
+    "types": ["node"]
+  },
+  // Tests are typechecked by `tsconfig.tests.json`, which is the surface that
+  // has Bun's types. Main itself must not, so they are excluded here the same
+  // way the renderer and the agent host exclude theirs.
+  "include": ["src/main/**/*.ts"],
+  "exclude": ["src/main/**/*.test.ts"]
+}

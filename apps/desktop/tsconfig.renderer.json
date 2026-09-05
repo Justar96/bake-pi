@@ -1,0 +1,13 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // No @types/node, on purpose. `import "node:fs"` in a renderer file is a
+    // compile error here rather than a code-review catch — and rather than a
+    // confusing "require is not defined" inside a sandboxed frame at runtime.
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "types": [],
+    "jsx": "react-jsx"
+  },
+  "include": ["src/renderer/**/*.ts", "src/renderer/**/*.tsx"],
+  "exclude": ["src/renderer/**/*.test.ts", "src/renderer/**/*.test.tsx"]
+}

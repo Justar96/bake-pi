@@ -1,0 +1,220 @@
+import { type Static, Type } from "@sinclair/typebox"
+import { ThinkingLevel } from "../dto/model.ts"
+import { WorkspaceId } from "../dto/primitives.ts"
+import { defineCommands } from "./define.ts"
+
+const boundedText = Type.String({ minLength: 1, maxLength: 4096 })
+const optionalCommand = Type.Union([Type.Array(boundedText, { maxItems: 32 }), Type.Null()])
+const optionalList = Type.Union([Type.Array(boundedText, { maxItems: 128 }), Type.Null()])
+
+export const PiSettingKey = Type.Union([
+  Type.Literal("defaultModel"),
+  Type.Literal("defaultThinkingLevel"),
+  Type.Literal("modelThinkingLevels"),
+  Type.Literal("steeringMode"),
+  Type.Literal("followUpMode"),
+  Type.Literal("transport"),
+  Type.Literal("compactionEnabled"),
+  Type.Literal("retryEnabled"),
+  Type.Literal("httpIdleTimeoutMs"),
+  Type.Literal("hideThinkingBlock"),
+  Type.Literal("showCacheMissNotices"),
+  Type.Literal("shellPath"),
+  Type.Literal("shellCommandPrefix"),
+  Type.Literal("npmCommand"),
+  Type.Literal("quietStartup"),
+  Type.Literal("defaultProjectTrust"),
+  Type.Literal("collapseChangelog"),
+  Type.Literal("enableInstallTelemetry"),
+  Type.Literal("enableAnalytics"),
+  Type.Literal("packages"),
+  Type.Literal("extensionPaths"),
+  Type.Literal("skillPaths"),
+  Type.Literal("promptTemplatePaths"),
+  Type.Literal("themePaths"),
+  Type.Literal("enableSkillCommands"),
+  Type.Literal("showImages"),
+  Type.Literal("imageWidthCells"),
+  Type.Literal("clearOnShrink"),
+  Type.Literal("showTerminalProgress"),
+  Type.Literal("tuiMode"),
+  Type.Literal("fullscreenExitOutput"),
+  Type.Literal("fullscreenScrollbar"),
+  Type.Literal("fullscreenCopyOnSelect"),
+  Type.Literal("imageAutoResize"),
+  Type.Literal("blockImages"),
+  Type.Literal("enabledModels"),
+  Type.Literal("doubleEscapeAction"),
+  Type.Literal("treeFilterMode"),
+  Type.Literal("showHardwareCursor"),
+  Type.Literal("editorPaddingX"),
+  Type.Literal("outputPad"),
+  Type.Literal("autocompleteMaxVisible"),
+  Type.Literal("mermaidRenderingMode"),
+  Type.Literal("anthropicExtraUsageWarning"),
+  Type.Literal("piTheme"),
+])
+export type PiSettingKey = Static<typeof PiSettingKey>
+
+const DefaultModel = Type.Object({
+  providerId: Type.String({ minLength: 1, maxLength: 128 }),
+  modelId: Type.String({ minLength: 1, maxLength: 128 }),
+})
+
+const ModelThinkingLevel = Type.Object({
+  providerId: Type.String({ minLength: 1, maxLength: 128 }),
+  modelId: Type.String({ minLength: 1, maxLength: 128 }),
+  level: ThinkingLevel,
+})
+
+const resourcePatterns = Type.Array(boundedText, { maxItems: 128 })
+export const PiPackageSource = Type.Union([
+  boundedText,
+  Type.Object({
+    source: boundedText,
+    autoload: Type.Optional(Type.Boolean()),
+    extensions: Type.Optional(resourcePatterns),
+    skills: Type.Optional(resourcePatterns),
+    prompts: Type.Optional(resourcePatterns),
+    themes: Type.Optional(resourcePatterns),
+  }, { additionalProperties: false }),
+])
+export type PiPackageSource = Static<typeof PiPackageSource>
+
+export const PiSettingsSnapshot = Type.Object({
+  projectTrusted: Type.Boolean(),
+  projectOverrides: Type.Array(PiSettingKey, { maxItems: 64 }),
+  defaultModel: Type.Optional(DefaultModel),
+  defaultThinkingLevel: ThinkingLevel,
+  modelThinkingLevels: Type.Array(ModelThinkingLevel, { maxItems: 512 }),
+  steeringMode: Type.Union([Type.Literal("all"), Type.Literal("one-at-a-time")]),
+  followUpMode: Type.Union([Type.Literal("all"), Type.Literal("one-at-a-time")]),
+  transport: Type.Union([
+    Type.Literal("auto"),
+    Type.Literal("sse"),
+    Type.Literal("websocket"),
+    Type.Literal("websocket-cached"),
+  ]),
+  compactionEnabled: Type.Boolean(),
+  retryEnabled: Type.Boolean(),
+  httpIdleTimeoutMs: Type.Integer({ minimum: 0 }),
+  hideThinkingBlock: Type.Boolean(),
+  showCacheMissNotices: Type.Boolean(),
+  shellPath: Type.Optional(Type.String({ maxLength: 4096 })),
+  shellCommandPrefix: Type.Optional(Type.String({ maxLength: 4096 })),
+  npmCommand: Type.Optional(Type.Array(Type.String({ maxLength: 4096 }), { maxItems: 32 })),
+  quietStartup: Type.Boolean(),
+  defaultProjectTrust: Type.Union([Type.Literal("ask"), Type.Literal("always"), Type.Literal("never")]),
+  collapseChangelog: Type.Boolean(),
+  enableInstallTelemetry: Type.Boolean(),
+  enableAnalytics: Type.Boolean(),
+  packages: Type.Array(PiPackageSource, { maxItems: 128 }),
+  extensionPaths: resourcePatterns,
+  skillPaths: resourcePatterns,
+  promptTemplatePaths: resourcePatterns,
+  themePaths: resourcePatterns,
+  enableSkillCommands: Type.Boolean(),
+  showImages: Type.Boolean(),
+  imageWidthCells: Type.Integer({ minimum: 1 }),
+  clearOnShrink: Type.Boolean(),
+  showTerminalProgress: Type.Boolean(),
+  tuiMode: Type.Union([Type.Literal("regular"), Type.Literal("fullscreen")]),
+  fullscreenExitOutput: Type.Union([Type.Literal("transcript"), Type.Literal("resume-hint")]),
+  fullscreenScrollbar: Type.Union([Type.Literal("auto"), Type.Literal("always"), Type.Literal("hidden")]),
+  fullscreenCopyOnSelect: Type.Boolean(),
+  imageAutoResize: Type.Boolean(),
+  blockImages: Type.Boolean(),
+  enabledModels: Type.Optional(Type.Array(Type.String({ maxLength: 4096 }), { maxItems: 128 })),
+  doubleEscapeAction: Type.Union([Type.Literal("tree"), Type.Literal("fork"), Type.Literal("none")]),
+  treeFilterMode: Type.Union([
+    Type.Literal("default"),
+    Type.Literal("no-tools"),
+    Type.Literal("user-only"),
+    Type.Literal("labeled-only"),
+    Type.Literal("all"),
+  ]),
+  showHardwareCursor: Type.Boolean(),
+  editorPaddingX: Type.Integer({ minimum: 0, maximum: 3 }),
+  outputPad: Type.Union([Type.Literal(0), Type.Literal(1)]),
+  autocompleteMaxVisible: Type.Integer({ minimum: 3, maximum: 20 }),
+  mermaidRenderingMode: Type.Union([Type.Literal("off"), Type.Literal("final"), Type.Literal("streaming")]),
+  anthropicExtraUsageWarning: Type.Boolean(),
+  piTheme: Type.Optional(Type.String({ minLength: 1, maxLength: 256 })),
+})
+export type PiSettingsSnapshot = Static<typeof PiSettingsSnapshot>
+
+export const PiSettingsPatch = Type.Partial(Type.Object({
+  defaultModel: DefaultModel,
+  defaultThinkingLevel: ThinkingLevel,
+  modelThinkingLevel: Type.Object({
+    providerId: Type.String({ minLength: 1, maxLength: 128 }),
+    modelId: Type.String({ minLength: 1, maxLength: 128 }),
+    level: Type.Union([ThinkingLevel, Type.Null()]),
+  }),
+  steeringMode: Type.Union([Type.Literal("all"), Type.Literal("one-at-a-time")]),
+  followUpMode: Type.Union([Type.Literal("all"), Type.Literal("one-at-a-time")]),
+  transport: Type.Union([
+    Type.Literal("auto"),
+    Type.Literal("sse"),
+    Type.Literal("websocket"),
+    Type.Literal("websocket-cached"),
+  ]),
+  compactionEnabled: Type.Boolean(),
+  retryEnabled: Type.Boolean(),
+  httpIdleTimeoutMs: Type.Integer({ minimum: 0, maximum: 86_400_000 }),
+  hideThinkingBlock: Type.Boolean(),
+  showCacheMissNotices: Type.Boolean(),
+  shellPath: Type.Union([boundedText, Type.Null()]),
+  shellCommandPrefix: Type.Union([boundedText, Type.Null()]),
+  npmCommand: optionalCommand,
+  quietStartup: Type.Boolean(),
+  defaultProjectTrust: Type.Union([Type.Literal("ask"), Type.Literal("always"), Type.Literal("never")]),
+  collapseChangelog: Type.Boolean(),
+  enableInstallTelemetry: Type.Boolean(),
+  enableAnalytics: Type.Boolean(),
+  packages: Type.Array(PiPackageSource, { maxItems: 128 }),
+  extensionPaths: resourcePatterns,
+  skillPaths: resourcePatterns,
+  promptTemplatePaths: resourcePatterns,
+  themePaths: resourcePatterns,
+  enableSkillCommands: Type.Boolean(),
+  showImages: Type.Boolean(),
+  imageWidthCells: Type.Integer({ minimum: 1, maximum: 500 }),
+  clearOnShrink: Type.Boolean(),
+  showTerminalProgress: Type.Boolean(),
+  tuiMode: Type.Union([Type.Literal("regular"), Type.Literal("fullscreen")]),
+  fullscreenExitOutput: Type.Union([Type.Literal("transcript"), Type.Literal("resume-hint")]),
+  fullscreenScrollbar: Type.Union([Type.Literal("auto"), Type.Literal("always"), Type.Literal("hidden")]),
+  fullscreenCopyOnSelect: Type.Boolean(),
+  imageAutoResize: Type.Boolean(),
+  blockImages: Type.Boolean(),
+  enabledModels: optionalList,
+  doubleEscapeAction: Type.Union([Type.Literal("tree"), Type.Literal("fork"), Type.Literal("none")]),
+  treeFilterMode: Type.Union([
+    Type.Literal("default"),
+    Type.Literal("no-tools"),
+    Type.Literal("user-only"),
+    Type.Literal("labeled-only"),
+    Type.Literal("all"),
+  ]),
+  showHardwareCursor: Type.Boolean(),
+  editorPaddingX: Type.Integer({ minimum: 0, maximum: 3 }),
+  outputPad: Type.Union([Type.Literal(0), Type.Literal(1)]),
+  autocompleteMaxVisible: Type.Integer({ minimum: 3, maximum: 20 }),
+  mermaidRenderingMode: Type.Union([Type.Literal("off"), Type.Literal("final"), Type.Literal("streaming")]),
+  anthropicExtraUsageWarning: Type.Boolean(),
+  piTheme: Type.String({ minLength: 1, maxLength: 256 }),
+}))
+export type PiSettingsPatch = Static<typeof PiSettingsPatch>
+
+export const settingsCommands = defineCommands({
+  get_pi_settings: {
+    params: Type.Object({ workspaceId: WorkspaceId }),
+    result: Type.Object({ settings: PiSettingsSnapshot }),
+  },
+  /** Pi's public setters write global settings; project overrides remain visible and authoritative. */
+  update_global_settings: {
+    params: Type.Object({ workspaceId: WorkspaceId, patch: PiSettingsPatch }),
+    result: Type.Object({ settings: PiSettingsSnapshot }),
+  },
+})

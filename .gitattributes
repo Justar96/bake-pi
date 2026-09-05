@@ -1,0 +1,12 @@
+# Line endings are decided here, not by each contributor's git config. A
+# cross-platform project where the checkout differs by machine produces diffs
+# nobody authored and bundle hashes that never match.
+* text=auto eol=lf
+
+# Binary and generated content git must not touch.
+*.wasm binary
+*.png binary
+*.ico binary
+*.icns binary
+bun.lock -diff linguist-generated
+docs/reference/pi-upstream.md linguist-generated

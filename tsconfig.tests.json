@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    // Tests run under Bun, so they get Bun's types and the DOM — the renderer
+    // suite drives a real MessagePort. The packages under test do not get
+    // either; that separation is the reason this project exists rather than
+    // widening each package's `types` array and losing the boundary.
+    "lib": ["DOM", "DOM.Iterable", "ES2023"],
+    "types": ["bun"]
+  },
+  // Test fixtures are typechecked with the tests they serve, not with the
+  // package they drive: `packages/agent-host/test` holds a Pi-backed provider
+  // that must not be part of the shipped agent host.
+  "include": ["**/*.test.ts", "**/*.test.tsx", "packages/agent-host/test/**/*.ts"],
+  "exclude": ["node_modules", "dist", "out"]
+}

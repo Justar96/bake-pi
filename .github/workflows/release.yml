@@ -1,0 +1,103 @@
+name: release
+
+# A version tag (including `vX.Y.Z-beta.N`) builds the Windows installer and the Linux packages and
+# uploads them to one draft GitHub Release. Publishing the draft is a human
+# step, on purpose: the moment it is public, update.electronjs.org serves the
+# Windows build to every installed copy.
+#
+# The tag must match `apps/desktop/package.json`'s version. Squirrel names the
+# package after that field and the updater compares against it, so a tag that
+# says one thing and a manifest that says another ships an update no client
+# would accept.
+#
+# A hyphen in the version makes the release a prerelease: `forge.config.ts`
+# derives the publisher's `prerelease` flag from `apps/desktop/package.json`,
+# so `v0.1.0-beta.1` never becomes the stable channel's latest and the first
+# tag without a suffix does, with no flag to remember. GitHub's
+# `/releases/latest` only resolves once such a release exists, which is why
+# the README links the releases list instead; that link stays correct either
+# way, but the "Beta builds" wording around it will want revisiting then.
+#
+# Nothing here is signed yet. Windows shows the SmartScreen "unknown publisher"
+# dialog, which a person dismisses with "More info" then "Run anyway"; Linux
+# packages need no signature. Signing is a later step and slots into the
+# `windowsSign` option of the packager and the Squirrel maker.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # Two jobs upload to one draft. The publisher finds the release by tag and
+  # creates it only if absent, so they run in sequence rather than racing to
+  # create two drafts for the same tag.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: windows
+
+      - name: Tag matches the desktop manifest
+        shell: bash
+        run: |
+          version=$(bun -e 'console.log(JSON.parse(await Bun.file("apps/desktop/package.json").text()).version)')
+          test "refs/tags/v$version" = "$GITHUB_REF" || { echo "tag $GITHUB_REF does not match apps/desktop version $version"; exit 1; }
+
+      - name: Typecheck and test
+        run: bun run typecheck && bun test
+
+      - name: Build and package
+        run: bun run package
+
+      - name: The package starts and carries the declared fuses
+        run: bun run packaged
+
+      - name: Installer, and upload the draft release
+        run: bun run publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-x64
+          path: apps/desktop/out/make/squirrel.windows/x64/
+          if-no-files-found: error
+
+  linux:
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+        with:
+          cache-key: linux
+
+      # `rpmbuild` for the RPM maker; dpkg and fakeroot are on the runner.
+      - run: sudo apt-get update && sudo apt-get install -y rpm
+
+      - name: Build and package
+        run: bun run package
+
+      - name: The package starts and carries the declared fuses
+        run: xvfb-run --auto-servernum bun run packaged
+
+      - name: deb and rpm, and upload the draft release
+        run: bun run publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-x64
+          path: |
+            apps/desktop/out/make/deb/x64/
+            apps/desktop/out/make/rpm/x64/
+          if-no-files-found: error

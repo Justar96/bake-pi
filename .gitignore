@@ -1,0 +1,16 @@
+node_modules/
+dist/
+out/
+*.tsbuildinfo
+.DS_Store
+.idea/
+
+# Scratch files: `probe.tmp.ts`, `notes.tmp.md`, anything a debugging session left behind.
+*.tmp.*
+
+# Local development watcher output
+/dev-watch.log
+/dev-watch.err.log
+
+# Agent
+.claude/
